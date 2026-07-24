@@ -1,0 +1,13 @@
+{
+    "numTimesteps": 250,
+    "evalTimesteps": 50,
+    "encoderLayers": 6,
+    "embedDim": 128,
+    "numHeads": 8,
+    "imageSize": 128,
+    "patchSize": 16,
+    "directory": "data",
+    "learningRate": 1e-4,
+    "epochs": 10,
+    "batchSize": 16
+}
