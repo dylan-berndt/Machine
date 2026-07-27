@@ -1,6 +1,6 @@
 from utils import *
 
-DEVICE = "cpu"
+DEVICE = "xpu"
 CONFIG = Config().load(os.path.join("configs", "config.json"))
 
 encoder = ViTEncoder(CONFIG)
