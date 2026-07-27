@@ -37,7 +37,7 @@ def extractVideo(directory):
     mp4 = glob(os.path.join(directory, "*.mp4"))
     mov = glob(os.path.join(directory, "*.mov"))
 
-    for filePath in (mp4 + mov)[:10]:
+    for filePath in (mp4 + mov)[:3]:
         frames.extend(extractFrames(filePath))
 
     return frames
@@ -63,7 +63,7 @@ def extractImages(directory):
     jpeg = glob(os.path.join(directory, "*.jpg")) + glob(os.path.join(directory, "*.jpeg"))
     heic = glob(os.path.join(directory, "*.heic"))
 
-    for filePath in (jpeg + heic):
+    for filePath in (jpeg + heic)[:40]:
         frames.append(openImage(filePath))
 
     return frames

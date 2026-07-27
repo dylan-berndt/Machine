@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import math
 
 from .config import Config
 
@@ -36,12 +37,16 @@ class ViTEncoder(nn.Module):
         self.config = config
 
         self.patch = PatchEmbed(config.imageSize, config.patchSize, embedDim=config.embedDim)
-        self.pos = nn.Parameter(torch.zeros(1, self.patch.numPatches, config.embedDim))
-        self.time = nn.Embedding(config.numTimesteps, config.embedDim)
+        self.pos = nn.Parameter(torch.randn(1, self.patch.numPatches, config.embedDim) * 0.02)
+        self.timeMLP = nn.Sequential(
+            nn.Linear(config.embedDim, config.embedDim * 4),
+            nn.SiLU(),
+            nn.Linear(config.embedDim * 4, config.embedDim)
+        )
 
         encoderLayer = nn.TransformerEncoderLayer(
             d_model=config.embedDim, nhead=config.numHeads, dim_feedforward=config.embedDim * 4, 
-            batch_first=True
+            batch_first=True, activation=nn.functional.gelu, norm_first=True, dropout=0
         )
 
         self.encoder = nn.TransformerEncoder(
@@ -52,12 +57,21 @@ class ViTEncoder(nn.Module):
 
         self.decode = PatchDecode(config.imageSize, config.patchSize, embedDim=config.embedDim)
 
+        nn.init.zeros_(self.decode.proj.weight)
+        nn.init.zeros_(self.decode.proj.bias)
+
+    def time(self, t):
+        half = self.config.embedDim // 2
+        freqs = torch.exp(-math.log(10000) * torch.arange(half, dtype=torch.float32, device=t.device) / half)
+        args = t[:, None].float() * freqs[None, :]
+        return torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
+
     def forward(self, image, t):
         x = self.patch(image)
         x = x + self.pos
 
-        time = self.time(t)
-        x = torch.cat([x, time.unsqueeze(1)], dim=1)
+        time = self.timeMLP(self.time(t))
+        x = x + time.unsqueeze(1)
 
-        x = self.norm(self.encoder(x))[:, :-1]
+        x = self.norm(self.encoder(x))
         return self.decode(x)

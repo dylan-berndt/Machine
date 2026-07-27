@@ -5,9 +5,9 @@
     "embedDim": 128,
     "numHeads": 8,
     "imageSize": 128,
-    "patchSize": 16,
+    "patchSize": 4,
     "directory": "data",
-    "learningRate": 1e-4,
-    "epochs": 10,
+    "learningRate": 3e-4,
+    "epochs": 100,
     "batchSize": 16
 }
