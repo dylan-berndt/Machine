@@ -18,17 +18,36 @@ class PatchEmbed(nn.Module):
 
 
 class PatchDecode(nn.Module):
-    def __init__(self, imageSize, patchSize=8, inChannels=3, embedDim=256):
+    def __init__(self, imageSize, patchSize=4, inChannels=3, embedDim=256):
         super().__init__()
         self.patchGrid = imageSize // patchSize
-        self.numPatches = self.patchGrid ** 2
-        self.proj = nn.ConvTranspose2d(embedDim, inChannels, kernel_size=patchSize, stride=patchSize)
+        self.patchSize = patchSize
+        self.proj = nn.Linear(embedDim, patchSize * patchSize * embedDim // 4)
+        self.shuffle = nn.PixelShuffle(patchSize)
+        self.head = nn.Sequential(
+            nn.Conv2d(embedDim // 4, embedDim // 4, 3, padding=1),
+            nn.SiLU(),
+            nn.Conv2d(embedDim // 4, inChannels, 3, padding=1),
+        )
 
     def forward(self, x):
         B, N, C = x.shape
-        x = x.transpose(1, 2).reshape(B, C, self.patchGrid, self.patchGrid)
-        x = self.proj(x)
-        return x
+        x = self.proj(x).transpose(1, 2).reshape(B, -1, self.patchGrid, self.patchGrid)
+        return self.head(self.shuffle(x))
+
+
+# class PatchDecode(nn.Module):
+#     def __init__(self, imageSize, patchSize=8, inChannels=3, embedDim=256):
+#         super().__init__()
+#         self.patchGrid = imageSize // patchSize
+#         self.numPatches = self.patchGrid ** 2
+#         self.proj = nn.ConvTranspose2d(embedDim, inChannels, kernel_size=patchSize, stride=patchSize)
+
+#     def forward(self, x):
+#         B, N, C = x.shape
+#         x = x.transpose(1, 2).reshape(B, C, self.patchGrid, self.patchGrid)
+#         x = self.proj(x)
+#         return x
 
 
 class ViTEncoder(nn.Module):
