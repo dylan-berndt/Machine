@@ -110,7 +110,7 @@ class ViTEncoder(nn.Module):
         self.config = config
 
         self.patch = PatchEmbed(config.imageSize, config.patchSize, embedDim=config.embedDim)
-        self.pos = nn.Parameter(torch.randn(1, self.patch.numPatches, config.embedDim) * 0.02)
+        self.pos = nn.Parameter(torch.randn(1, self.patch.numPatches, config.embedDim) * 0.2)
         self.timeMLP = nn.Sequential(
             nn.Linear(config.embedDim, config.embedDim * 4),
             nn.SiLU(),
@@ -137,11 +137,11 @@ class ViTEncoder(nn.Module):
 
     def forward(self, image, t):
         x = self.patch(image)
-        x = x + self.pos
 
         cond = self.timeMLP(self.time(t))
 
         for block in self.blocks:
+            x = x + self.pos
             x = block(x, cond)
 
         x = self.norm(x, cond)

@@ -1,12 +1,12 @@
 from utils import *
 
 import math
-import wandb
+# import wandb
 
-DEVICE = "cuda"
+DEVICE = "xpu"
 CONFIG = Config().load(os.path.join("configs", "config.json"))
 
-wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize())
+# wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize())
 
 encoder = ViTEncoder(CONFIG)
 encoder.to(DEVICE)
@@ -48,7 +48,7 @@ for epoch in range(CONFIG.epochs):
 
     print()
     step += 1
-    wandb.log({"train/loss": trainLossSum / len(train), "epoch": epoch + 1}, step=step)
+    # wandb.log({"train/loss": trainLossSum / len(train), "epoch": epoch + 1}, step=step)
 
     with torch.no_grad():
         encoder.eval()
@@ -63,11 +63,11 @@ for epoch in range(CONFIG.epochs):
             print(f"\rEpoch: {epoch + 1} | {progress}/{len(test)} testing steps | Loss: {loss.item():.3f}", end="")
 
         print()
-        wandb.log({"test/loss": testLossSum / len(test), "epoch": epoch + 1}, step=step)
+        # wandb.log({"test/loss": testLossSum / len(test), "epoch": epoch + 1}, step=step)
 
         images = generateImages(encoder, number=20)
         for i in range(images.shape[0]):
             image = images[i]
             torchvision.utils.save_image(image, os.path.join("results", f"image {i + 1}.png"))
 
-        wandb.log({"samples": [wandb.Image(images[i]) for i in range(images.shape[0])]}, step=step)
+        # wandb.log({"samples": [wandb.Image(images[i]) for i in range(images.shape[0])]}, step=step)
