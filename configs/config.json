@@ -1,13 +1,14 @@
 {
     "numTimesteps": 250,
     "evalTimesteps": 50,
-    "encoderLayers": 6,
-    "embedDim": 128,
+    "encoderLayers": 12,
+    "embedDim": 256,
     "numHeads": 8,
     "imageSize": 128,
     "patchSize": 4,
     "directory": "data",
     "learningRate": 3e-4,
+    "warmupSteps": 500,
     "epochs": 100,
     "batchSize": 16
 }
