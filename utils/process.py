@@ -37,7 +37,7 @@ def extractVideo(directory):
     mp4 = glob(os.path.join(directory, "*.mp4"))
     mov = glob(os.path.join(directory, "*.mov"))
 
-    for filePath in (mp4 + mov):
+    for filePath in (mp4 + mov)[:60]:
         frames.extend(extractFrames(filePath))
 
     return frames

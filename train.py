@@ -3,7 +3,7 @@ from utils import *
 import math
 # import wandb
 
-DEVICE = "xpu"
+DEVICE = "cuda"
 CONFIG = Config().load(os.path.join("configs", "config.json"))
 
 # wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize())
@@ -43,11 +43,19 @@ for epoch in range(CONFIG.epochs):
         scheduler.step()
 
         progress += 1
+        step += 1
         trainLossSum += loss.item()
         print(f"\rEpoch: {epoch + 1} | {progress}/{len(train)} training steps | Loss: {loss.item():.3f}", end="")
 
+        if step % 400 == 0:
+            with torch.no_grad():
+                encoder.eval()
+                images = generateImages(encoder, number=20)
+                for i in range(images.shape[0]):
+                    image = images[i]
+                    torchvision.utils.save_image(image, os.path.join("results", f"image {i + 1}.png"))
+
     print()
-    step += 1
     # wandb.log({"train/loss": trainLossSum / len(train), "epoch": epoch + 1}, step=step)
 
     with torch.no_grad():
@@ -65,9 +73,6 @@ for epoch in range(CONFIG.epochs):
         print()
         # wandb.log({"test/loss": testLossSum / len(test), "epoch": epoch + 1}, step=step)
 
-        images = generateImages(encoder, number=20)
-        for i in range(images.shape[0]):
-            image = images[i]
-            torchvision.utils.save_image(image, os.path.join("results", f"image {i + 1}.png"))
+        
 
         # wandb.log({"samples": [wandb.Image(images[i]) for i in range(images.shape[0])]}, step=step)

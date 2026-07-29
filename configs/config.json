@@ -10,5 +10,5 @@
     "learningRate": 1e-4,
     "warmupSteps": 500,
     "epochs": 100,
-    "batchSize": 64
+    "batchSize": 192
 }
