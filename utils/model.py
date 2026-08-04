@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import math
+import copy
 
 from .config import Config
 
@@ -146,3 +147,28 @@ class ViTEncoder(nn.Module):
 
         x = self.norm(x, cond)
         return self.decode(x)
+
+
+class EMA:
+    """Keeps a shadow copy of a model whose weights track an exponential
+    moving average of the trained weights, for use during evaluation."""
+
+    def __init__(self, model, decay=0.999):
+        self.decay = decay
+        self.model = copy.deepcopy(model)
+        self.model.eval()
+        for param in self.model.parameters():
+            param.requires_grad_(False)
+
+    @torch.no_grad()
+    def update(self, model):
+        for emaParam, param in zip(self.model.parameters(), model.parameters()):
+            emaParam.mul_(self.decay).add_(param.detach(), alpha=1 - self.decay)
+        for emaBuffer, buffer in zip(self.model.buffers(), model.buffers()):
+            emaBuffer.copy_(buffer)
+
+    def state_dict(self):
+        return self.model.state_dict()
+
+    def load_state_dict(self, stateDict):
+        self.model.load_state_dict(stateDict)

@@ -1,22 +1,19 @@
 from utils import *
 
 import math
-# import wandb
+import wandb
 
 DEVICE = "cuda"
 CONFIG = Config().load(os.path.join("configs", "config.json"))
-
-# wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize())
 
 encoder = ViTEncoder(CONFIG)
 encoder.to(DEVICE)
 dataset = DiffusionData(CONFIG)
 
-train, test = torch.utils.data.random_split(dataset, [0.8, 0.2])
-train = DataLoader(train, batch_size=CONFIG.batchSize, shuffle=True)
-test = DataLoader(test, batch_size=CONFIG.batchSize, shuffle=True)
+train = DataLoader(dataset, batch_size=CONFIG.batchSize, shuffle=True)
 
 optimizer = torch.optim.Adam(encoder.parameters(), lr=CONFIG.learningRate)
+ema = EMA(encoder, decay=CONFIG.emaDecay)
 
 totalSteps = CONFIG.epochs * len(train)
 
@@ -29,10 +26,30 @@ def lrLambda(step):
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lrLambda)
 
 step = 0
+if os.path.exists("checkpoints") and len(glob(os.path.join("checkpoints", "*.pt"))) > 0:
+    paths = glob(os.path.join("checkpoints", "*.pt"))
+    mostRecentRun = sorted([(path, int(os.path.basename(path).removeprefix("step_").removesuffix(".pt"))) for path in paths], key=lambda x: x[1])[-1][0]
+    print(f"\nLoading {mostRecentRun}...\n")
+    runData = torch.load(mostRecentRun)
+
+    run = wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize(), id=runData["runID"], resume="must")
+
+    optimizer.load_state_dict(runData["optimizer"])
+    scheduler.load_state_dict(runData["scheduler"])
+    encoder.load_state_dict(runData["model"])
+    ema.load_state_dict(runData["ema"])
+    step = runData["step"]
+
+else:
+    os.makedirs("checkpoints", exist_ok=True)
+
+    run = wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize())
+
+intervalLossSum = 0
+intervalSteps = 0
 for epoch in range(CONFIG.epochs):
     encoder.train()
     progress = 0
-    trainLossSum = 0
     for image, noise, noised, t in train:
         outputs = encoder(noised.to(DEVICE), t.to(DEVICE))
         loss = nn.functional.mse_loss(noise.to(DEVICE), outputs)
@@ -41,38 +58,34 @@ for epoch in range(CONFIG.epochs):
         loss.backward()
         optimizer.step()
         scheduler.step()
+        ema.update(encoder)
 
         progress += 1
         step += 1
-        trainLossSum += loss.item()
+        intervalLossSum += loss.item()
+        intervalSteps += 1
         print(f"\rEpoch: {epoch + 1} | {progress}/{len(train)} training steps | Loss: {loss.item():.3f}", end="")
 
-        if step % 400 == 0:
+        if step % 1000 == 0:
+            wandb.log({"Train Loss": intervalLossSum / intervalSteps}, step=step)
+            intervalLossSum = 0
+            intervalSteps = 0
+
+            torch.save({
+                "step": step,
+                "epoch": epoch,
+                "model": encoder.state_dict(),
+                "ema": ema.state_dict(),
+                "runID": run.id,
+                "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict(),
+            }, os.path.join("checkpoints", f"step_{step}.pt"))
+
             with torch.no_grad():
-                encoder.eval()
-                images = generateImages(encoder, number=20)
+                images = generateImages(ema.model, number=20)
                 for i in range(images.shape[0]):
                     image = images[i]
                     torchvision.utils.save_image(image, os.path.join("results", f"image {i + 1}.png"))
+                wandb.log({"Examples": wandb.Image(torchvision.utils.make_grid(images, 5, 0))}, step=step)
 
     print()
-    # wandb.log({"train/loss": trainLossSum / len(train), "epoch": epoch + 1}, step=step)
-
-    with torch.no_grad():
-        encoder.eval()
-        progress = 0
-        testLossSum = 0
-        for image, noise, noised, t in test:
-            outputs = encoder(noised.to(DEVICE), t.to(DEVICE))
-            loss = nn.functional.mse_loss(noise.to(DEVICE), outputs)
-
-            progress += 1
-            testLossSum += loss.item()
-            print(f"\rEpoch: {epoch + 1} | {progress}/{len(test)} testing steps | Loss: {loss.item():.3f}", end="")
-
-        print()
-        # wandb.log({"test/loss": testLossSum / len(test), "epoch": epoch + 1}, step=step)
-
-        
-
-        # wandb.log({"samples": [wandb.Image(images[i]) for i in range(images.shape[0])]}, step=step)

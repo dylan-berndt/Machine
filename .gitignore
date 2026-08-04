@@ -4,3 +4,5 @@ results
 venv
 wandb
 history/trash
+checkpoints/*
+!checkpoints/recent.pt

@@ -9,6 +9,7 @@
     "directory": "data",
     "learningRate": 1e-4,
     "warmupSteps": 500,
+    "emaDecay": 0.999,
     "epochs": 100,
     "batchSize": 192
 }
