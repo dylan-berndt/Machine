@@ -132,10 +132,10 @@ while True:
                 historySlice = max(0, historySlice - 1)
 
             if event.key == pygame.K_MINUS:
-                brushStrength -= 1
+                brushStrength -= 5
 
             if event.key == pygame.K_EQUALS:
-                brushStrength += 1
+                brushStrength += 5
 
             if event.key == pygame.K_r:
                 if lastBrush is not None:
@@ -214,8 +214,13 @@ while True:
                            brushSize * viewZoom, brushSize * viewZoom)
         pygame.draw.rect(draw, (255, 255, 255), rect=rect, width=1)
 
+    height = 0
     locationText = uiFont.render(f"({viewLocation[0]:.2f}, {viewLocation[1]:.2f}) | {viewZoom:.2f}x", True, (255, 255, 255))
-    draw.blit(locationText, (0, 0))
+    draw.blit(locationText, (0, height))
+    height += locationText.get_rect().height + 8
+    brushText = uiFont.render(f"{brushStrength}/{CONFIG.evalTimesteps} | {brushSize}", True, (255, 255, 255))
+    draw.blit(brushText, (0, height))
+    height += brushText.get_rect().height + 8
 
     if debug:
         pass

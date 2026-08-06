@@ -25,6 +25,9 @@ def lrLambda(step):
 
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lrLambda)
 
+os.environ["WANDB_BASE_URL"] = "https://api.wandb.ai"
+os.environ["WANDB_START_METHOD"] = "thread"
+
 step = 0
 if os.path.exists("checkpoints") and len(glob(os.path.join("checkpoints", "*.pt"))) > 0:
     paths = glob(os.path.join("checkpoints", "*.pt"))
@@ -32,7 +35,8 @@ if os.path.exists("checkpoints") and len(glob(os.path.join("checkpoints", "*.pt"
     print(f"\nLoading {mostRecentRun}...\n")
     runData = torch.load(mostRecentRun)
 
-    run = wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize(), id=runData["runID"], resume="must")
+    run = wandb.init(entity="dylanberndt123-missouri-state-university", project="Machine", config=CONFIG.serialize(), id=runData["runID"], resume="must",
+    settings=wandb.Settings(init_timeout=300))
 
     optimizer.load_state_dict(runData["optimizer"])
     scheduler.load_state_dict(runData["scheduler"])

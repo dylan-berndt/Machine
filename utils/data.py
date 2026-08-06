@@ -71,8 +71,10 @@ class DiffusionData(Dataset):
 
         self.transforms = v2.Compose([
             v2.ToImage(),
+            # v2.RandomPerspective(),
             v2.Resize(size=(config.imageSize, config.imageSize), antialias=True),
             v2.RandomResizedCrop(size=(config.imageSize, config.imageSize), scale=(0.75, 1.0), antialias=True),
+            # v2.RandomRotation((-90, 90)),
             v2.RandomHorizontalFlip(p=0.5),
             v2.ColorJitter(0.1, 0.1, 0.1, 0.1),
             v2.ToDtype(torch.float32, scale=True),
